@@ -66,34 +66,6 @@
   - Hiệu ứng kính mờ (Glassmorphism), viền gradient, bóng đổ mềm mại.
   - Thẻ chỉ số nổi bật với màu sắc quy ước: Hổ phách (Mean), Ngọc lục bảo (Median), Hồng cánh sen (Mode).
 
----
-
-## 📦 Tải Về & Chia Sẻ Ứng Dụng Cho Người Khác
-
-Ứng dụng hiện đã được chuẩn bị đầy đủ 3 hình thức phân phối để bạn chia sẻ cho người khác:
-
-### 1. 🚀 File Thực Thi Độc Lập Cho Windows (`.exe` Không Cần Cài Python)
-File `.exe` đã được đóng gói sẵn, người nhận chỉ cần nhấp đúp là chạy ngay như một phần mềm máy tính thông thường:
-* Đường dẫn: [`dist/StatCalc_Pro.exe`](file:///c:/Users/PC/AntigravityProject/statistical_calculator/dist/StatCalc_Pro.exe) (16.8 MB)
-* Ưu điểm: Độc lập hoàn toàn, có icon biểu tượng riêng, không cần cài đặt Python hay bất kỳ thư viện nào.
-
-### 2. 🗜️ Gói Phân Phối Trọn Gói Portable (`.zip`)
-Đã được nén sẵn để bạn gửi qua **Zalo, Google Drive, Email, Mediafire** hoặc chép vào **USB**:
-* File tải về: [`releases/StatCalc_Pro_Portable_Windows.zip`](file:///c:/Users/PC/AntigravityProject/statistical_calculator/releases/StatCalc_Pro_Portable_Windows.zip) (17 MB)
-* Người nhận chỉ cần giải nén ra và nhấp đúp vào `StatCalc_Pro.exe` hoặc `run_app.bat`.
-
-### 3. ⚡ Cài Đặt Trực Tiếp Thành App (PWA - Progressive Web App)
-Khi mở ứng dụng trên trình duyệt (Chrome, Edge, Cốc Cốc, Safari):
-* Nhấp vào nút **"⚡ Tải / Cài Đặt App"** màu xanh ngọc ở góc trên bên phải màn hình.
-* Hoặc nhấp vào biểu tượng **Cài Đặt ⊕** trên thanh địa chỉ của trình duyệt.
-* Ứng dụng sẽ tự động cài vào máy tính hoặc điện thoại với biểu tượng trên Desktop / Màn hình chính, chạy độc lập và hoạt động **100% Offline** không cần mạng internet.
-
-### 4. 🌐 Cách Đưa Lên Mạng Để Ai Cũng Tải Được (Miễn Phí qua GitHub Pages)
-Nếu muốn gửi một đường link web để bất kỳ ai trên thế giới cũng có thể mở và bấm "Cài đặt":
-1. Tạo một repository mới trên [GitHub.com](https://github.com) (ví dụ: `statcalc-pro`).
-2. Tải toàn bộ các file trong thư mục `statistical_calculator` lên repo.
-3. Vào **Settings $\rightarrow$ Pages $\rightarrow$ Chọn Branch `main` $\rightarrow$ Save**.
-4. GitHub sẽ cấp cho bạn một đường link (ví dụ: `https://ten-ban.github.io/statcalc-pro/`). Người khác chỉ cần bấm vào link là có thể dùng ngay và nhấn nút "Cài Đặt App" về máy của họ!
 
 ---
 
