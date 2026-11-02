@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ứng dụng bảng tính thông minh hỗ trợ tìm giá trị trung bình, trung vị, mốt, nhập xuất file Excel và trực quan hóa dữ liệu thống kê.">
+    <title>Bảng Tính & Thống Kê Thông Minh (Mean - Median - Mode) | StatCalc Pro</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- PWA & Mobile Icons -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="64x64" href="assets/icon-64.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- CSS Style -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Thư viện SheetJS & Chart.js (sử dụng file cục bộ đã tải sẵn trong vendor, kèm CDN dự phòng) -->
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="vendor/chart.umd.min.js"></script>
+</head>
+<body class="dark-theme">
+    <!-- Drop Zone Overlay khi kéo file vào -->
+    <div id="drop-zone-overlay" class="drop-zone-overlay">
+        <div class="drop-zone-content">
+            <span class="drop-icon">📥</span>
+            <h3>Thả file Excel (.xlsx, .xls) hoặc .csv vào đây</h3>
+            <p>Ứng dụng sẽ tự động phân tích và nạp dữ liệu vào bảng tính</p>
+        </div>
+    </div>
+
+    <!-- App Wrapper -->
+    <div class="app-layout">
+        <!-- Top Navigation Bar -->
+        <header class="app-header">
+            <div class="header-brand">
+                <div class="brand-logo">
+                    <span class="logo-icon">📊</span>
+                </div>
+                <div class="brand-info">
+                    <h1 class="brand-title">StatCalc Pro</h1>
+                    <span class="brand-subtitle">Bảng Tính & Thống Kê Toán Học (Trung Bình • Trung Vị • Mốt)</span>
+                </div>
+            </div>
+
+            <!-- Trạng thái file đang mở -->
+            <div id="current-file-info" class="current-file-badge" style="display: none;">
+                File: Chưa mở
+            </div>
+
+            <!-- Top Actions -->
+            <div class="header-actions">
+                <!-- Nút nhập Excel ẩn file input -->
+                <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv,.tsv" style="display: none;">
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('excel-file-input').click()" id="btn-import-excel" title="Mở file Excel (.xlsx, .xls) hoặc CSV">
+                    <span class="btn-icon">📥</span> Nhập Excel / CSV
+                </button>
+
+                <!-- Dữ liệu mẫu -->
+                <div class="select-wrapper">
+                    <select id="select-sample-data" class="custom-select" title="Tải dữ liệu mẫu có sẵn để thử nghiệm">
+                        <option value="">🎲 Nạp Dữ Liệu Mẫu...</option>
+                        <option value="students">🎓 Bảng Điểm Thi Khảo Sát</option>
+                        <option value="salary">💼 Khảo Sát Lương & Thu Nhập</option>
+                        <option value="sales">📈 Doanh Số & Đánh Giá KH</option>
+                    </select>
+                </div>
+
+                <!-- Xuất Excel -->
+                <div class="dropdown-export">
+                    <button type="button" class="btn btn-secondary" id="btn-export-excel" title="Xuất dữ liệu bảng tính ra Excel">
+                        <span class="btn-icon">📤</span> Xuất Excel
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btn-export-report" title="Xuất toàn bộ báo cáo phân tích ra file Excel riêng">
+                        <span class="btn-icon">📑</span> Xuất Báo Cáo
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btn-export-csv" title="Xuất file CSV">
+                        <span class="btn-icon">📄</span> CSV
+                    </button>
+                </div>
+
+                <!-- Tải / Cài Đặt Ứng Dụng (PWA & Desktop) -->
+                <button type="button" class="btn btn-install-app" id="btn-install-app" title="Cài đặt hoặc tải ứng dụng về máy tính / điện thoại">
+                    <span class="btn-icon">⚡</span> Tải / Cài Đặt App
+                </button>
+
+                <!-- Trợ giúp & Theme Toggle -->
+                <button type="button" class="btn btn-icon-only" id="btn-open-help" title="Hướng dẫn sử dụng">
+                    ❓
+                </button>
+                <button type="button" class="btn btn-ghost" id="theme-toggle-btn" title="Chuyển đổi giao diện Sáng / Tối">
+                    ☀️ Giao diện Sáng
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Cột Trái: Bảng Tính Tương Tác (In-App Spreadsheet) -->
+            <section class="spreadsheet-panel">
+                <div class="panel-header">
+                    <div class="panel-title-group">
+                        <h2 class="panel-title">
+                            <span class="panel-icon">📝</span> Bảng Tính Dữ Liệu
+                        </h2>
+                        <span class="panel-hint">Nhấp đúp vào ô để sửa • Nhấp đúp tiêu đề cột để đổi tên • Hỗ trợ Copy / Paste từ Excel</span>
+                    </div>
+
+                    <!-- Toolbar thao tác bảng tính -->
+                    <div class="spreadsheet-toolbar">
+                        <div class="btn-group">
+                            <button type="button" class="tool-btn" id="btn-add-row" title="Thêm 1 hàng mới vào cuối bảng">
+                                ➕ Hàng
+                            </button>
+                            <button type="button" class="tool-btn" id="btn-add-rows-5" title="Thêm 5 hàng trống">
+                                ➕ +5 Hàng
+                            </button>
+                            <button type="button" class="tool-btn" id="btn-add-col" title="Thêm 1 cột mới">
+                                ➕ Cột
+                            </button>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="tool-btn danger" id="btn-delete-row" title="Xóa hàng đang chọn">
+                                ➖ Xóa Hàng
+                            </button>
+                            <button type="button" class="tool-btn danger" id="btn-delete-col" title="Xóa cột đang chọn">
+                                ➖ Xóa Cột
+                            </button>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="tool-btn" id="btn-clear-table" title="Xóa toàn bộ nội dung ô">
+                                🧹 Xóa Ô
+                            </button>
+                            <button type="button" class="tool-btn" id="btn-reset-table" title="Khôi phục bảng mặc định ban đầu">
+                                🔄 Đặt Lại
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Khung chứa bảng tính dạng lưới cuộn -->
+                <div class="spreadsheet-container-wrap">
+                    <div id="spreadsheet-container" class="spreadsheet-container">
+                        <!-- Bảng tính động do spreadsheet.js tạo ra ở đây -->
+                    </div>
+                </div>
+
+                <!-- Spreadsheet Footer -->
+                <div class="spreadsheet-footer">
+                    <div class="footer-hint">
+                        💡 <strong>Mẹo:</strong> Bạn có thể sao chép (Ctrl+C) các ô trong Excel rồi dán (Ctrl+V) thẳng vào bảng này!
+                    </div>
+                    <div class="footer-stats">
+                        <span>Nhấp vào biểu tượng 📊 ở tiêu đề cột để chọn phân tích</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cột Phải: Bảng Phân Tích Thống Kê & Trực Quan Hóa -->
+            <section class="statistics-panel">
+                <div class="stats-header">
+                    <div class="stats-nav-tabs">
+                        <button type="button" class="nav-tab active" id="tab-single-col">
+                            🎯 Phân Tích Cột
+                        </button>
+                        <button type="button" class="nav-tab" id="tab-all-cols">
+                            📑 Tổng Hợp Tất Cả Cột
+                        </button>
+                    </div>
+
+                    <!-- Dropdown chọn nhanh cột -->
+                    <div class="col-picker-wrapper">
+                        <label for="column-selector" class="sr-only">Chọn cột phân tích:</label>
+                        <select id="column-selector" class="custom-select col-select">
+                            <!-- Các option được cập nhật động bằng javascript -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- VIEW 1: CHI TIẾT 1 CỘT -->
+                <div id="single-col-analysis-view" class="analysis-view active">
+                    <!-- Tiêu đề cột đang chọn -->
+                    <div class="active-col-banner">
+                        <div class="banner-title-wrap">
+                            <span class="banner-badge">Đang Phân Tích</span>
+                            <h3 id="active-column-title" class="active-col-heading">Cột C: Điểm Toán</h3>
+                        </div>
+                        <span id="active-column-count" class="badge-count">15 giá trị hợp lệ</span>
+                    </div>
+
+                    <!-- 3 THẺ CHÍNH TRỌNG TÂM: MEAN - MEDIAN - MODE -->
+                    <div class="core-metrics-grid">
+                        <!-- THẺ 1: MEAN (TRUNG BÌNH CỘNG) -->
+                        <div class="stat-card card-mean">
+                            <div class="card-glow"></div>
+                            <div class="card-top">
+                                <div class="card-label-group">
+                                    <span class="card-badge badge-amber">x̄</span>
+                                    <h4 class="card-title">Giá Trị Trung Bình</h4>
+                                </div>
+                                <span class="card-hint-pill" title="Tổng các giá trị chia cho số lượng phần tử">Mean</span>
+                            </div>
+                            <div class="card-value-display">
+                                <span class="card-number" id="val-mean">0.00</span>
+                            </div>
+                            <div class="card-footer-info">
+                                <span id="val-mean-diff" class="footer-note">So với Trung vị: 0.00</span>
+                                <span class="formula-chip">∑x / N</span>
+                            </div>
+                        </div>
+
+                        <!-- THẺ 2: MEDIAN (TRUNG VỊ) -->
+                        <div class="stat-card card-median">
+                            <div class="card-glow"></div>
+                            <div class="card-top">
+                                <div class="card-label-group">
+                                    <span class="card-badge badge-emerald">Me</span>
+                                    <h4 class="card-title">Trung Vị (Median)</h4>
+                                </div>
+                                <span class="card-hint-pill" title="Giá trị nằm chính giữa khi dãy số được sắp xếp tăng dần">Median</span>
+                            </div>
+                            <div class="card-value-display">
+                                <span class="card-number" id="val-median">0.00</span>
+                            </div>
+                            <div class="card-footer-info">
+                                <span id="val-median-type" class="footer-note">Giá trị nằm ở vị trí trung tâm</span>
+                                <span class="formula-chip">Q₂ (50%)</span>
+                            </div>
+                        </div>
+
+                        <!-- THẺ 3: MODE (MỐT / YẾU VỊ) -->
+                        <div class="stat-card card-mode">
+                            <div class="card-glow"></div>
+                            <div class="card-top">
+                                <div class="card-label-group">
+                                    <span class="card-badge badge-pink">Mo</span>
+                                    <h4 class="card-title">Mốt (Mode / Yếu Vị)</h4>
+                                </div>
+                                <span class="card-hint-pill" title="Giá trị có tần số xuất hiện nhiều nhất trong tập dữ liệu">Mode</span>
+                            </div>
+                            <div class="card-value-display">
+                                <span class="card-number" id="val-mode">0</span>
+                            </div>
+                            <div class="card-footer-info">
+                                <span id="val-mode-desc" class="footer-note">Tần số xuất hiện cao nhất</span>
+                                <span class="formula-chip">Tần số Max</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- THẺ CÁC CHỈ SỐ BỔ TRỢ TOÀN DIỆN -->
+                    <div class="secondary-metrics-grid">
+                        <div class="sub-stat-item">
+                            <span class="sub-label">Tổng (Sum ∑)</span>
+                            <span class="sub-value" id="val-sum">0</span>
+                        </div>
+                        <div class="sub-stat-item">
+                            <span class="sub-label">Nhỏ Nhất (Min)</span>
+                            <span class="sub-value" id="val-min">0</span>
+                        </div>
+                        <div class="sub-stat-item">
+                            <span class="sub-label">Lớn Nhất (Max)</span>
+                            <span class="sub-value" id="val-max">0</span>
+                        </div>
+                        <div class="sub-stat-item">
+                            <span class="sub-label">Khoảng Biến Thiên (Range)</span>
+                            <span class="sub-value" id="val-range">0</span>
+                        </div>
+                        <div class="sub-stat-item">
+                            <span class="sub-label">Phương Sai Mẫu (s²)</span>
+                            <span class="sub-value" id="val-variance">0</span>
+                        </div>
+                        <div class="sub-stat-item">
+                            <span class="sub-label">Độ Lệch Chuẩn (s)</span>
+                            <span class="sub-value" id="val-stddev">0</span>
+                        </div>
+                        <div class="sub-stat-item">
+                            <span class="sub-label">Tứ Phân Vị Q1</span>
+                            <span class="sub-value" id="val-q1">0</span>
+                        </div>
+                        <div class="sub-stat-item">
+                            <span class="sub-label">Tứ Phân Vị Q3</span>
+                            <span class="sub-value" id="val-q3">0</span>
+                        </div>
+                        <div class="sub-stat-item">
+                            <span class="sub-label">Độ Trải Giữa (IQR)</span>
+                            <span class="sub-value" id="val-iqr">0</span>
+                        </div>
+                    </div>
+
+                    <!-- TRỰC QUAN HÓA: BIỂU ĐỒ PHÂN PHỐI TẦN SỐ -->
+                    <div class="chart-section-card">
+                        <div class="chart-card-header">
+                            <div class="chart-title-wrap">
+                                <h4 class="chart-title">📊 Biểu Đồ Phân Phối Tần Số & Mốt</h4>
+                                <span class="chart-legend-badge mode-highlight">⭐ Màu hồng: Vị trí Mốt (Mode)</span>
+                            </div>
+                            <div class="chart-controls">
+                                <button type="button" class="chart-type-btn active" data-type="bar" title="Biểu đồ cột">
+                                    Cột
+                                </button>
+                                <button type="button" class="chart-type-btn" data-type="line" title="Biểu đồ đường">
+                                    Đường
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-canvas-wrapper">
+                            <canvas id="distribution-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- HƯỚNG DẪN GIẢI THÍCH CHI TIẾT TỪNG BƯỚC TÍNH TOÁN (STEP-BY-STEP) -->
+                    <div class="step-by-step-section">
+                        <div class="step-section-header">
+                            <h4 class="step-section-title">📐 Chi Tiết Các Bước Tính Toán (Step-by-Step)</h4>
+                            <span class="step-section-subtitle">Minh họa cách tìm ra Trung bình, Trung vị và Mốt</span>
+                        </div>
+                        <div id="step-by-step-content" class="steps-container">
+                            <!-- Được render động từ app.js -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 2: TỔNG HỢP TẤT CẢ CÁC CỘT (COMPARATIVE VIEW) -->
+                <div id="all-cols-summary-view" class="analysis-view hidden">
+                    <div class="all-cols-card">
+                        <div class="all-cols-header">
+                            <div>
+                                <h3 class="all-cols-title">📑 Bảng Tổng Hợp So Sánh Tất Cả Các Cột Số Liệu</h3>
+                                <p class="all-cols-subtitle">So sánh trực quan Trung bình, Trung vị, Mốt và Độ biến động của từng biến</p>
+                            </div>
+                        </div>
+
+                        <div class="all-cols-table-wrapper">
+                            <table class="all-cols-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tên Cột</th>
+                                        <th>Cỡ Mẫu (N)</th>
+                                        <th>Trung Bình (Mean)</th>
+                                        <th>Trung Vị (Median)</th>
+                                        <th>Mốt (Mode)</th>
+                                        <th>Min</th>
+                                        <th>Max</th>
+                                        <th>Độ Lệch Chuẩn (s)</th>
+                                        <th>Thao Tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="all-columns-table-body">
+                                    <!-- Render động từ javascript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL CHỌN SHEET KHI FILE EXCEL CÓ NHIỀU SHEET -->
+    <div id="sheet-picker-modal" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title">📑 Chọn Sheet Dữ Liệu Cần Nhập</h3>
+                <button type="button" class="modal-close" id="close-sheet-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>File Excel này chứa nhiều sheet. Vui lòng chọn sheet bạn muốn đưa vào bảng tính:</p>
+                <div class="form-group">
+                    <label for="sheet-select">Tên Sheet:</label>
+                    <select id="sheet-select" class="custom-select modal-select"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="confirm-sheet-btn">Xác Nhận Nạp Dữ Liệu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL HƯỚNG DẪN SỬ DỤNG -->
+    <div id="help-modal" class="modal-backdrop">
+        <div class="modal-box modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">📖 Hướng Dẫn Sử Dụng StatCalc Pro</h3>
+                <button type="button" class="modal-close" id="btn-close-help">&times;</button>
+            </div>
+            <div class="modal-body help-body">
+                <div class="help-grid">
+                    <div class="help-card">
+                        <h4>1. Bảng Tính Tương Tác</h4>
+                        <ul>
+                            <li><strong>Chỉnh sửa ô:</strong> Nhấp đúp vào ô hoặc chọn ô và gõ phím trực tiếp.</li>
+                            <li><strong>Điều hướng:</strong> Sử dụng các phím mũi tên <code>↑</code>, <code>↓</code>, <code>←</code>, <code>→</code>. Bấm <code>Enter</code> để xuống dòng, <code>Tab</code> để sang ô kế bên.</li>
+                            <li><strong>Đổi tên cột:</strong> Nhấp đúp vào tiêu đề cột để đặt tên theo ý muốn (ví dụ: "Toán", "Lương",...).</li>
+                            <li><strong>Sao chép & Dán:</strong> Hỗ trợ dán (Ctrl+V) bảng số liệu nhiều dòng/cột từ Excel hoặc Google Sheets.</li>
+                        </ul>
+                    </div>
+                    <div class="help-card">
+                        <h4>2. Nhập & Xuất File Excel</h4>
+                        <ul>
+                            <li><strong>Nhập Excel / CSV:</strong> Nhấp nút <strong>"Nhập Excel / CSV"</strong> hoặc kéo thả file <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code> trực tiếp vào ứng dụng.</li>
+                            <li><strong>Xuất Excel:</strong> Xuất toàn bộ bảng tính hiện tại ra file <code>.xlsx</code>.</li>
+                            <li><strong>Xuất Báo Cáo:</strong> Tự động tổng hợp bảng kết quả tính toán chi tiết kèm các chỉ số thống kê vào file Excel riêng.</li>
+                        </ul>
+                    </div>
+                    <div class="help-card">
+                        <h4>3. Ý Nghĩa 3 Chỉ Số Chính</h4>
+                        <ul>
+                            <li><strong>Giá Trị Trung Bình (Mean):</strong> Điểm cân bằng của dữ liệu. Tổng tất cả các giá trị chia cho số lượng quan sát.</li>
+                            <li><strong>Trung Vị (Median):</strong> Giá trị chia tập dữ liệu thành 2 nửa bằng nhau khi sắp xếp tăng dần. Ít bị ảnh hưởng bởi các giá trị ngoại lai cực đoan (outliers).</li>
+                            <li><strong>Mốt (Mode):</strong> Giá trị xuất hiện với tần số lớn nhất. Có thể có 1 mốt, nhiều mốt, hoặc không có mốt nếu tất cả giá trị đều phân biệt.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('help-modal').classList.remove('active')">Đã Hiểu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TẢI & CÀI ĐẶT ỨNG DỤNG -->
+    <div id="install-modal" class="modal-backdrop">
+        <div class="modal-box modal-lg">
+            <div class="modal-header">
+                <div class="brand-logo" style="width: 34px; height: 34px; border-radius: 8px;">
+                    <span style="font-size: 18px;">⚡</span>
+                </div>
+                <h3 class="modal-title" style="margin-left: 10px;">Tải & Cài Đặt StatCalc Pro</h3>
+                <button type="button" class="modal-close" id="btn-close-install">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px;">Bạn có thể cài đặt StatCalc Pro thành ứng dụng độc lập trên máy tính hoặc điện thoại với 2 cách tiện lợi:</p>
+                
+                <div class="help-grid">
+                    <!-- Cách 1: PWA Native Install -->
+                    <div class="help-card" style="border-left: 4px solid var(--accent-primary);">
+                        <h4 style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>Cách 1: Cài đặt trực tiếp (PWA - Khuyên Dùng)</span>
+                            <span class="badge-tag" style="background: rgba(99, 102, 241, 0.2); color: var(--accent-primary);">Tất cả thiết bị</span>
+                        </h4>
+                        <p style="font-size: 0.8rem; margin: 6px 0 10px 0; color: var(--text-secondary);">
+                            Cài đặt ứng dụng trực tiếp từ trình duyệt thành app độc lập (có icon trên Desktop, hoạt động 100% offline không cần mạng, mở nhanh chóng không có thanh địa chỉ).
+                        </p>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button type="button" class="btn btn-primary" id="btn-trigger-pwa-install">
+                                <span class="btn-icon">⚡</span> Cài Đặt Ứng Dụng Ngay
+                            </button>
+                            <span id="pwa-status-text" style="font-size: 0.75rem; color: var(--text-muted);">
+                                (Nếu nút chưa kích hoạt, nhấp biểu tượng Cài Đặt ⊕ ở thanh địa chỉ trình duyệt)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Cách 2: Tải trọn gói cho Windows (.zip / .exe) -->
+                    <div class="help-card" style="border-left: 4px solid var(--accent-emerald);">
+                        <h4 style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>Cách 2: Gói Cài Đặt Windows (.exe / Portable)</span>
+                            <span class="badge-tag" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald);">Windows 10 / 11</span>
+                        </h4>
+                        <p style="font-size: 0.8rem; margin: 6px 0 10px 0; color: var(--text-secondary);">
+                            Tải file nén trọn gói về máy tính. Bạn có thể gửi file này cho bạn bè, đồng nghiệp qua Zalo, Google Drive, USB. Người nhận chỉ cần giải nén và nhấp đúp là chạy ngay không cần cài đặt Python!
+                        </p>
+                        <div style="font-size: 0.78rem; background: var(--bg-card-hover); padding: 8px 12px; border-radius: 6px; font-family: var(--font-mono);">
+                            📁 Thư mục ứng dụng: <strong>AntigravityProject/statistical_calculator/</strong><br>
+                            🚀 File khởi động 1-click: <strong>run_app.bat</strong> hoặc <strong>StatCalc_Pro.exe</strong>
+                        </div>
+                    </div>
+
+                    <!-- Hướng dẫn trên các nền tảng khác -->
+                    <div class="help-card">
+                        <h4>📱 Hướng dẫn cài trên Điện thoại & Máy tính bảng:</h4>
+                        <ul style="font-size: 0.78rem; line-height: 1.6;">
+                            <li><strong>Trên iPhone/iPad (Safari):</strong> Bấm nút <em>Chia sẻ (Share)</em> ⎋ $\rightarrow$ Chọn <em>"Thêm vào màn hình chính" (Add to Home Screen)</em>.</li>
+                            <li><strong>Trên Android (Chrome):</strong> Bấm menu 3 chấm ⠇ $\rightarrow$ Chọn <em>"Cài đặt ứng dụng" (Install App)</em>.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('install-modal').classList.remove('active')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container Thông Báo Toast -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts Logic -->
+    <script src="js/statistics.js"></script>
+    <script src="js/spreadsheet.js"></script>
+    <script src="js/excel.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
